@@ -98,9 +98,11 @@ export const likeUnlikePost = async (req, res) => {
 
         if (userLikedPost) {
             await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+            await User.updateOne({_id: userId},{$pull: {likedPosts: postId}});
             return res.status(200).json({ message: "Post unliked successfully" });
         } else {
             post.likes.push(userId);
+            await User.updateOne({_id: userId},{$push: {likedPosts: postId}});
             await post.save();
 
             const notification = new Notification({
@@ -116,6 +118,108 @@ export const likeUnlikePost = async (req, res) => {
 
     } catch (error) {
         console.log("error in likeUnlikePost controller:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+export const getAllPosts = async (req, res) => {
+    try {
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "user",
+                select: "-password"
+            })
+            .populate({
+                path: "comments.user",
+                select: "username"
+            });
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.log("Error in getAllPosts controller:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+export const getLikedPosts = async (req, res) => {
+    const userId = req.params.id;
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Find posts where the user has liked them
+        const likedPosts = await Post.find({ likes: userId })
+            .populate({
+                path: "user",
+                select: "-password"
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password"
+            })
+            .sort({ createdAt: -1 }); // Sort by most recent
+
+        res.status(200).json(likedPosts);
+    } catch (error) {
+        console.log("Error in getLikedPosts controller:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+export const getFollowingPosts = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Find the current user to get the list of followings
+        const user = await User.findById(userId).select("following");
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Get posts from users the current user is following
+        const followingPosts = await Post.find({ user: { $in: user.following } })
+            .populate({
+                path: "user",
+                select: "-password"
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password"
+            })
+            .sort({ createdAt: -1 }); // Sort by most recent
+
+        res.status(200).json(followingPosts);
+    } catch (error) {
+        console.log("Error in getFollowingPosts controller:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export const getUserPosts = async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Check if the user exists
+        const user = await User.findById(userId).select("-password");
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Get all posts by the user
+        const userPosts = await Post.find({ user: userId })
+            .populate({
+                path: "user",
+                select: "-password"
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password"
+            })
+            .sort({ createdAt: -1 }); // Sort by most recent
+
+        res.status(200).json(userPosts);
+    } catch (error) {
+        console.log("Error in getUserPosts controller:", error);
         res.status(500).json({ error: "Internal server error" });
     }
 }
