@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoute.js';
 import connectMongoDB from './db/connectMongo.js';
 import userRoutes from './routes/userRoutes.js'
 import postRoutes from './routes/postRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
 dotenv.config();
 
 const app=express();
@@ -26,6 +27,7 @@ app.use(express.urlencoded({extended:true}));
 app.use('/api/auth',authRoutes);
 app.use('/api/users',userRoutes)
 app.use("/api/posts",postRoutes);
+app.use("/api/notifications",notificationRoutes)
 
 app.listen(PORT,()=>{
     console.log('Server started at http://localhost:8000');
