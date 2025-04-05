@@ -39,7 +39,7 @@ const SignUpPage = () => {
 				console.error(error);
 				throw error;
 			}
-		},
+		}, 
 		onSuccess: () => {
 			toast.success("Account created successfully");
 
